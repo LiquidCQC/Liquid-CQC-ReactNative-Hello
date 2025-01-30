@@ -10,6 +10,7 @@ pool:
   vmImage: 'macos-latest'
 
 steps:
+- script: yarn install
 - task: Gradle@2
   inputs:
     workingDirectory: ''
