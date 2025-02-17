@@ -1,38 +1,26 @@
-# This config was automatically generated from your source code
-# Stacks detected: deps:node:.,test:jest:
-version: 2.1
-orbs:
-  node: circleci/node@5
+version: 2
 jobs:
-  test-node:
-    # Install node dependencies and run tests
-    executor: node/default
+  build:
+    working_directory: ~/repo
+    docker:
+      - image: circleci/android:api-29-node8-alpha
     environment:
-      JEST_JUNIT_OUTPUT_DIR: ./test-results/
+      JVM_OPTS: -Xmx3200m
     steps:
       - checkout
-      - node/install-packages:
-          pkg-manager: npm
+      - restore_cache:
+          keys:
+            - v1-dependencies-{{ checksum "package.json" }}
+            - v1-dependencies-
       - run:
-          command: npm install jest-junit
+          name: Install dependencies
+          command: yarn install
+      - save_cache:
+          key: v1-dependencies-{{ checksum "package.json" }}
+          paths:
+            - node_modules
       - run:
-          name: Run tests
-          command: npm run test --ci --runInBand --reporters=default --reporters=jest-junit
-      - store_test_results:
-          path: ./test-results/
-  deploy:
-    # This is an example deploy job, not actually used by the workflow
-    docker:
-      - image: cimg/base:stable
-    steps:
-      # Replace this with steps to deploy to users
-      - run:
-          name: deploy
-          command: '#e.g. ./deploy.sh'
-workflows:
-  build-and-test:
-    jobs:
-      - test-node
-    # - deploy:
-    #     requires:
-    #       - test-node
+          name: Build android
+          command: |
+            yarn run react-native link
+            yarn run react-native run-android
