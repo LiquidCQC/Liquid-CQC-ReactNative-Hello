@@ -1,40 +1,39 @@
-version: 2
+# This config was automatically generated from your source code
+# Stacks detected: deps:node:.,test:jest:
+version: 2.1
+orbs:
+  node: circleci/node@5
 jobs:
- build_and_release_android:
+  test-node:
+    # Install node dependencies and run tests
+    executor: node/default
     environment:
-        # Configure the JVM and Gradle to avoid OOM errors
-        _JAVA_OPTIONS: "-Xms512m -Xmx2g"
-        GRADLE_OPTS: '-Xmx3g -Dorg.gradle.daemon=false -Dorg.gradle.jvmargs="-Xmx2g -XX:+HeapDumpOnOutOfMemoryError"'
-        LC_ALL: en_US.UTF-8
-        LANG: en_US.UTF-8
-    docker:
-        - image: reactnativecommunity/react-native-android
+      JEST_JUNIT_OUTPUT_DIR: ./test-results/
     steps:
-        - checkout
-        - run: 
-            name: bundle install --path vendor/bundle
-            command: bundle install --path vendor/bundle
-        - run: 
-            name: npm i -g envinfo && envinfo
-            command: npm i -g envinfo && envinfo
-        - run: 
-            name: yarn install
-            command: yarn install
-        - run: 
-            name: npx jetify
-            command: npx jetify
-        - run: 
-            name: Install Fastlane 
-            command: gem install fastlane
-        - run:
-            name: bundle install
-            command: cd android && bundle install
-        - run: 
-            name: fastlane beta
-            no_output_timeout: 30m
-            command: cd android && fastlane beta
+      - checkout
+      - node/install-packages:
+          pkg-manager: npm
+      - run:
+          command: npm install jest-junit
+      - run:
+          name: Run tests
+          command: npm run test --ci --runInBand --reporters=default --reporters=jest-junit
+      - store_test_results:
+          path: ./test-results/
+  deploy:
+    # This is an example deploy job, not actually used by the workflow
+    docker:
+      - image: cimg/base:stable
+    steps:
+      # Replace this with steps to deploy to users
+      - run:
+          name: deploy
+          command: '#e.g. ./deploy.sh'
 workflows:
-  version: 2
-  build_and_test:
+  build-and-test:
     jobs:
-      - build_and_release_android
+      - test-node
+    # - deploy:
+    #     requires:
+    #       - test-node
+
