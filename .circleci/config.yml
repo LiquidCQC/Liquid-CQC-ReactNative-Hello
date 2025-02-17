@@ -1,39 +1,76 @@
-# This config was automatically generated from your source code
-# Stacks detected: deps:node:.,test:jest:
 version: 2.1
-orbs:
-  node: circleci/node@5
+
 jobs:
-  test-node:
-    # Install node dependencies and run tests
-    executor: node/default
-    environment:
-      JEST_JUNIT_OUTPUT_DIR: ./test-results/
+  build:
+    docker:
+      - image: cimg/node:16.20 # Or a later Node version
     steps:
       - checkout
-      - node/install-packages:
-          pkg-manager: npm
-      - run:
-          command: npm install jest-junit
-      - run:
-          name: Run tests
-          command: npm run test --ci --runInBand --reporters=default --reporters=jest-junit
-      - store_test_results:
-          path: ./test-results/
-  deploy:
-    # This is an example deploy job, not actually used by the workflow
-    docker:
-      - image: cimg/base:stable
-    steps:
-      # Replace this with steps to deploy to users
-      - run:
-          name: deploy
-          command: '#e.g. ./deploy.sh'
-workflows:
-  build-and-test:
-    jobs:
-      - test-node
-    # - deploy:
-    #     requires:
-    #       - test-node
+      - restore_cache: # Cache node_modules to speed up builds
+          keys:
+            - v1-dependencies-{{ checksum "package-lock.json" }}
+            - v1-dependencies-
 
+      - run:
+          name: Install Dependencies
+          command: npm install --legacy-peer-deps # Use --legacy-peer-deps if needed
+
+      - save_cache: # Save the cache
+          paths:
+            - node_modules
+          key: v1-dependencies-{{ checksum "package-lock.json" }}
+
+      - run:
+          name: Lint
+          command: npm run lint # Assuming you have a lint script in package.json
+
+      - run:
+          name: Test
+          command: npm test # Assuming you have a test script in package.json
+
+      - run:
+          name: Build
+          command: npm run build # Or react-native run-android/run-ios depending on your platform
+
+      # Example for building an APK (Android)
+      - run:
+          name: Build APK (Android)
+          command: |
+            cd android
+            ./gradlew assembleRelease # Or assembleDebug for a debug build
+
+      # Example for building an IPA (iOS) - Requires macOS environment
+      # - run:
+      #     name: Build IPA (iOS)
+      #     command: |
+      #       # iOS build commands here. Requires Xcode setup in the executor.
+      #       # Example: xcodebuild ...
+
+      # Deploy (Example - adjust for your deployment strategy)
+      # - deploy:
+      #     name: Deploy to Play Store (Android) - Example
+      #     requires: [build]
+      #     filters:
+      #       branches:
+      #         ignore: /.*/
+      #         only:
+      #           - main # Or your release branch
+      #     commands:
+      #       - # Your Play Store deployment commands here.  Requires appropriate setup.
+
+      # - deploy:
+      #     name: Deploy to App Store (iOS) - Example
+      #     requires: [build]
+      #     filters:
+      #       branches:
+      #         ignore: /.*/
+      #         only:
+      #           - main # Or your release branch
+      #     commands:
+      #       - # Your App Store deployment commands here. Requires appropriate setup.
+
+
+workflows:
+  build_and_deploy:
+    jobs:
+      - build
