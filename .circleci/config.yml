@@ -20,19 +20,29 @@ jobs:
           command: npm run test --ci --runInBand --reporters=default --reporters=jest-junit
       - store_test_results:
           path: ./test-results/
-  deploy:
-    # This is an example deploy job, not actually used by the workflow
+  build-and-deploy:
     docker:
-      - image: cimg/base:stable
+      - image: cimg/node:lts
     steps:
-      # Replace this with steps to deploy to users
+      - checkout
+      - node/install-packages:
+          pkg-manager: npm
       - run:
-          name: deploy
-          command: '#e.g. ./deploy.sh'
+          name: Build the project
+          command: npm run build
+      - aws-cli/install
+      - aws-s3/sync:
+          from: build
+          to: s3://my-s3-bucket-name
+          arguments: |
+            --acl public-read \
+            --cache-control "max-age=86400"
+
 workflows:
-  build-and-test:
+  build-test-deploy:
     jobs:
       - test-node
-    # - deploy:
-    #     requires:
-    #       - test-node
+      - build-and-deploy:
+          requires:
+            - test-node
+          context: AWS_CREDENTIALS
