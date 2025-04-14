@@ -30,12 +30,14 @@ jobs:
       - node/install-packages:
           pkg-manager: npm
       - run:
-          name: Build the project
+          name: Install Expo CLI
+          command: npm install --global expo-cli
+      - run:
+          name: Build Web App
           command: npm run build
-      - aws-cli/install
       - aws-s3/sync:
-          from: build
-          to: arn:aws:s3:::reactnstudi
+          from: web-build
+          to: s3://reactnstudi
           arguments: |
             --acl public-read \
             --cache-control "max-age=86400"
